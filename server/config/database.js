@@ -18,7 +18,7 @@ class Database {
       // Mongoose configuration
       mongoose.set("strictQuery", false);
 
-      // Connection options
+      // Connection options - removed deprecated options
       const options = {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -26,8 +26,6 @@ class Database {
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
         family: 4, // Use IPv4, skip trying IPv6
-        bufferCommands: false,
-        bufferMaxEntries: 0,
       };
 
       // Connect to MongoDB
