@@ -8,25 +8,27 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
-import "./index.css"; // Add this import
+import TestMongoDB from "./pages/TestMongoDB";
+import "./index.css";
 
 const App = () => (
-      <AuthProvider>
-        <div className="font-ios">
-          <Toaster position="top-center" />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-              <Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </div>
-      </AuthProvider>
+  <AuthProvider>
+    <div className="font-sans">
+      <Toaster position="top-center" />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+          <Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/test-mongodb" element={<TestMongoDB />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </div>
+  </AuthProvider>
 );
 
 export default App;
