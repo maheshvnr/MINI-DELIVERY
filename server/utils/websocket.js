@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { database } from "./database.js";
+import User from "../models/User.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -13,18 +13,18 @@ export const setupWebSocket = (io) => {
     console.log(`👤 User connected: ${socket.id}`);
 
     // Handle authentication
-    socket.on("authenticate", (token) => {
+    socket.on("authenticate", async (token) => {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        const user = database.findUserById(decoded.userId);
+        const user = await User.findById(decoded.userId);
 
-        if (user) {
-          socket.userId = user.id;
+        if (user && user.isActive) {
+          socket.userId = user._id.toString();
           socket.userRole = user.role;
           socket.userName = user.name;
 
           connectedUsers.set(socket.id, {
-            userId: user.id,
+            userId: user._id.toString(),
             role: user.role,
             name: user.name,
           });
@@ -32,7 +32,7 @@ export const setupWebSocket = (io) => {
           socket.emit("authenticated", {
             message: "Successfully authenticated",
             user: {
-              id: user.id,
+              id: user._id,
               name: user.name,
               role: user.role,
             },
@@ -42,13 +42,16 @@ export const setupWebSocket = (io) => {
           socket.join(`role_${user.role}`);
 
           // Join user-specific room
-          socket.join(`user_${user.id}`);
+          socket.join(`user_${user._id}`);
 
           console.log(`✅ User authenticated: ${user.name} (${user.role})`);
         } else {
-          socket.emit("authentication_error", { message: "User not found" });
+          socket.emit("authentication_error", {
+            message: "User not found or inactive",
+          });
         }
       } catch (error) {
+        console.error("Authentication error:", error);
         socket.emit("authentication_error", { message: "Invalid token" });
       }
     });
@@ -75,7 +78,7 @@ export const setupWebSocket = (io) => {
     });
 
     // Handle real-time location updates (for delivery personnel)
-    socket.on("location_update", (data) => {
+    socket.on("location_update", async (data) => {
       if (socket.userRole !== "delivery") {
         socket.emit("error", {
           message: "Only delivery personnel can send location updates",
@@ -85,33 +88,45 @@ export const setupWebSocket = (io) => {
 
       const { orderId, latitude, longitude } = data;
 
-      // Validate the order belongs to this delivery person
-      const order = database.getOrderById(orderId);
-      if (!order || order.deliveryPersonId !== socket.userId) {
-        socket.emit("error", {
-          message: "Order not found or not assigned to you",
+      try {
+        const Order = (await import("../models/Order.js")).default;
+
+        // Validate the order belongs to this delivery person
+        const order = await Order.findById(orderId);
+        if (!order || order.deliveryPersonId.toString() !== socket.userId) {
+          socket.emit("error", {
+            message: "Order not found or not assigned to you",
+          });
+          return;
+        }
+
+        // Update order location
+        await order.updateLocation(latitude, longitude);
+
+        // Broadcast location to customer and admin
+        io.to(`customer_${order.customerId}`).emit("delivery_location", {
+          orderId,
+          latitude,
+          longitude,
+          deliveryPersonName: socket.userName,
+          timestamp: new Date().toISOString(),
         });
-        return;
+
+        io.to("admin_orders").emit("delivery_location", {
+          orderId,
+          latitude,
+          longitude,
+          deliveryPersonId: socket.userId,
+          deliveryPersonName: socket.userName,
+          customerId: order.customerId,
+          timestamp: new Date().toISOString(),
+        });
+
+        console.log(`📍 Location updated for order ${orderId}`);
+      } catch (error) {
+        console.error("Location update error:", error);
+        socket.emit("error", { message: "Failed to update location" });
       }
-
-      // Broadcast location to customer and admin
-      io.to(`customer_${order.customerId}`).emit("delivery_location", {
-        orderId,
-        latitude,
-        longitude,
-        deliveryPersonName: socket.userName,
-        timestamp: new Date().toISOString(),
-      });
-
-      io.to("admin_orders").emit("delivery_location", {
-        orderId,
-        latitude,
-        longitude,
-        deliveryPersonId: socket.userId,
-        deliveryPersonName: socket.userName,
-        customerId: order.customerId,
-        timestamp: new Date().toISOString(),
-      });
     });
 
     // Handle custom events
@@ -130,10 +145,24 @@ export const setupWebSocket = (io) => {
       socket.emit("pong");
     });
 
+    // Handle typing indicators (for chat features)
+    socket.on("typing", (data) => {
+      socket.to(data.room).emit("user_typing", {
+        userId: socket.userId,
+        userName: socket.userName,
+        isTyping: data.isTyping,
+      });
+    });
+
     // Handle disconnection
     socket.on("disconnect", () => {
       console.log(`👋 User disconnected: ${socket.id}`);
       connectedUsers.delete(socket.id);
+    });
+
+    // Handle errors
+    socket.on("error", (error) => {
+      console.error(`❌ Socket error for ${socket.id}:`, error);
     });
   });
 
@@ -154,6 +183,10 @@ export const setupWebSocket = (io) => {
     io.emit(event, data);
   };
 
+  const emitToRole = (role, event, data) => {
+    io.to(`role_${role}`).emit(event, data);
+  };
+
   const getConnectedUsers = () => {
     return Array.from(connectedUsers.values());
   };
@@ -164,14 +197,32 @@ export const setupWebSocket = (io) => {
     );
   };
 
+  const getUserSocketId = (userId) => {
+    for (const [socketId, user] of connectedUsers.entries()) {
+      if (user.userId === userId) {
+        return socketId;
+      }
+    }
+    return null;
+  };
+
+  const isUserOnline = (userId) => {
+    return Array.from(connectedUsers.values()).some(
+      (user) => user.userId === userId,
+    );
+  };
+
   // Export helper functions
   return {
     emitToCustomer,
     emitToDeliveryPerson,
     emitToAdmins,
     emitToAll,
+    emitToRole,
     getConnectedUsers,
     getConnectedUsersByRole,
+    getUserSocketId,
+    isUserOnline,
   };
 };
 
@@ -179,31 +230,35 @@ export const setupWebSocket = (io) => {
 export const notifyOrderCreated = (io, order) => {
   // Notify admins about new order
   io.to("admin_orders").emit("new_order", {
-    orderId: order.id,
+    orderId: order._id,
     customerId: order.customerId,
     pickupAddress: order.pickupAddress,
     dropAddress: order.dropAddress,
     itemDescription: order.itemDescription,
     timestamp: order.createdAt,
   });
+
+  console.log(`📢 New order notification sent: ${order._id}`);
 };
 
 export const notifyOrderAssigned = (io, order, deliveryPersonName) => {
   // Notify customer
   io.to(`customer_${order.customerId}`).emit("order_assigned", {
-    orderId: order.id,
+    orderId: order._id,
     deliveryPersonName,
     message: `Your order has been assigned to ${deliveryPersonName}`,
   });
 
   // Notify delivery person
   io.to(`delivery_${order.deliveryPersonId}`).emit("new_assignment", {
-    orderId: order.id,
+    orderId: order._id,
     pickupAddress: order.pickupAddress,
     dropAddress: order.dropAddress,
     itemDescription: order.itemDescription,
     message: "You have a new delivery assignment",
   });
+
+  console.log(`📢 Order assignment notifications sent: ${order._id}`);
 };
 
 export const notifyOrderStatusUpdate = (io, order, oldStatus, newStatus) => {
@@ -211,11 +266,12 @@ export const notifyOrderStatusUpdate = (io, order, oldStatus, newStatus) => {
     assigned: "Your order has been assigned to a delivery person",
     "picked-up": "Your order has been picked up and is on the way",
     delivered: "Your order has been delivered successfully",
+    cancelled: "Your order has been cancelled",
   };
 
   // Notify customer
   io.to(`customer_${order.customerId}`).emit("order_status_update", {
-    orderId: order.id,
+    orderId: order._id,
     oldStatus,
     newStatus,
     message:
@@ -224,10 +280,46 @@ export const notifyOrderStatusUpdate = (io, order, oldStatus, newStatus) => {
 
   // Notify admins
   io.to("admin_orders").emit("order_status_update", {
-    orderId: order.id,
+    orderId: order._id,
     customerId: order.customerId,
     deliveryPersonId: order.deliveryPersonId,
     oldStatus,
     newStatus,
+  });
+
+  console.log(
+    `📢 Status update notifications sent: ${order._id} (${oldStatus} → ${newStatus})`,
+  );
+};
+
+// System-wide notifications
+export const notifySystemAlert = (
+  io,
+  message,
+  type = "info",
+  targetRole = null,
+) => {
+  const alertData = {
+    message,
+    type,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (targetRole) {
+    io.to(`role_${targetRole}`).emit("system_alert", alertData);
+  } else {
+    io.emit("system_alert", alertData);
+  }
+
+  console.log(`📢 System alert sent: ${message} (${type})`);
+};
+
+// User connection events
+export const notifyUserConnection = (io, userId, userName, isOnline) => {
+  io.emit("user_connection_status", {
+    userId,
+    userName,
+    isOnline,
+    timestamp: new Date().toISOString(),
   });
 };
