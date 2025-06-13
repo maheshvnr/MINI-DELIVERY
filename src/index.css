@@ -14,11 +14,7 @@
       "Helvetica Neue",
       Arial,
       "Noto Sans",
-      sans-serif,
-      "Apple Color Emoji",
-      "Segoe UI Emoji",
-      "Segoe UI Symbol",
-      "Noto Color Emoji";
+      sans-serif;
   }
 
   body {
@@ -40,83 +36,7 @@
   }
 }
 
-@layer components {
-  /* Custom button variants using standard Tailwind classes */
-  .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
-  }
-
-  .btn-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium py-2 px-4 rounded-lg transition-all duration-200;
-  }
-
-  .btn-outline {
-    @apply border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200;
-  }
-
-  /* Form elements */
-  .input-primary {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200;
-  }
-
-  .textarea-primary {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none;
-  }
-
-  /* Card components */
-  .card {
-    @apply bg-white rounded-xl shadow-soft border border-gray-100;
-  }
-
-  .card-hover {
-    @apply bg-white rounded-xl shadow-soft border border-gray-100 hover:shadow-medium transition-shadow duration-300;
-  }
-
-  /* Status badges */
-  .badge-pending {
-    @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
-  }
-
-  .badge-assigned {
-    @apply bg-blue-100 text-blue-800 border border-blue-200;
-  }
-
-  .badge-picked-up {
-    @apply bg-purple-100 text-purple-800 border border-purple-200;
-  }
-
-  .badge-delivered {
-    @apply bg-green-100 text-green-800 border border-green-200;
-  }
-
-  .badge-cancelled {
-    @apply bg-gray-100 text-gray-800 border border-gray-200;
-  }
-
-  /* Animation classes */
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  .animate-slide-in {
-    animation: slideIn 0.3s ease-out;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.4s ease-out;
-  }
-
-  .animate-bounce-in {
-    animation: bounceIn 0.6s ease-out;
-  }
-}
-
 @layer utilities {
-  /* Text gradients */
-  .text-gradient-primary {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent;
-  }
-
   /* Shadow utilities */
   .shadow-soft {
     box-shadow:
@@ -134,31 +54,6 @@
     box-shadow:
       0 10px 40px -10px rgba(0, 0, 0, 0.15),
       0 20px 40px -10px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Scrollbar styling */
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: #d1d5db #f3f4f6;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: #f3f4f6;
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
   }
 }
 
@@ -213,24 +108,21 @@
   }
 }
 
-/* React Hot Toast custom styles */
-.Toastify__toast {
-  border-radius: 12px;
-  box-shadow:
-    0 4px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 25px -5px rgba(0, 0, 0, 0.04);
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
 }
 
-/* Custom focus styles */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
 }
 
-/* Print styles */
-@media print {
-  .no-print {
-    display: none !important;
-  }
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.6s ease-out;
 }
 
 /* Reduced motion */
