@@ -9,12 +9,22 @@ import DeliveryDashboard from "./pages/DeliveryDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import TestMongoDB from "./pages/TestMongoDB";
+import StyleTest from "./components/StyleTest";
 import "./index.css";
 
 const App = () => (
   <AuthProvider>
     <div className="font-sans">
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+        }}
+      />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -24,6 +34,7 @@ const App = () => (
           <Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/test-mongodb" element={<TestMongoDB />} />
+          <Route path="/test-styles" element={<StyleTest />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
