@@ -34,6 +34,9 @@ app.use(
 );
 app.use(express.json());
 
+// Make io available to routes
+app.set("io", io);
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
@@ -61,6 +64,9 @@ app.use("*", (req, res) => {
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 WebSocket server ready for real-time updates`);
+  console.log(
+    `🌐 Frontend URL: ${process.env.CLIENT_URL || "http://localhost:5173"}`,
+  );
 });
 
 export { io };

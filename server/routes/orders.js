@@ -2,7 +2,6 @@ import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import { database } from "../utils/database.js";
 import { authenticateToken } from "../middleware/auth.js";
-import { io } from "../index.js";
 
 const router = express.Router();
 
@@ -45,6 +44,7 @@ router.post("/", authenticateToken, (req, res) => {
     database.addOrder(order);
 
     // Emit real-time update
+    const io = req.app.get("io");
     io.emit("orderCreated", order);
     io.emit("orderUpdate", { orderId: order.id, status: "pending" });
 
@@ -150,6 +150,7 @@ router.put("/:id/assign", authenticateToken, (req, res) => {
     });
 
     // Emit real-time update
+    const io = req.app.get("io");
     io.emit("orderAssigned", {
       orderId: updatedOrder.id,
       deliveryPersonId,
@@ -215,6 +216,7 @@ router.put("/:id/status", authenticateToken, (req, res) => {
     });
 
     // Emit real-time update
+    const io = req.app.get("io");
     io.emit("orderStatusUpdated", {
       orderId: updatedOrder.id,
       status,
